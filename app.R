@@ -9,43 +9,66 @@
 
 library(shiny)
 
+cocktails <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-05-26/cocktails.csv')
+boston_cocktails <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2020/2020-05-26/boston_cocktails.csv')
+
+library(tidytuesdayR)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(stringr)
+tuesdata <- tidytuesdayR::tt_load('2020-05-26')
+tuesdata <- tidytuesdayR::tt_load(2020, week = 22)
+
+
+cocktails <- tuesdata$cocktails
+x    <- cocktails
+ingredient_cols <- grep("^ingredient$", names(cocktails), value = TRUE)
+## pop ingredient dropdown
+all_ingredients <- cocktails['ingredient'] %>%
+  unlist(use.names= FALSE) %>%
+  na.omit() %>%
+  str_to_title() %>%
+  sort () %>% 
+  unique()
+
+
 # Define UI for application that draws a histogram
 ui <- fluidPage(
 
     # Application title
-    titlePanel("Old Faithful Geyser Data"),
+    titlePanel("Cocktail Ingredients"),
 
-    # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
+            selectInput("ingredient",
+                        "Select Ingredients",
+                        choices = all_ingredients,
+                        selected = NULL,
+                        multiple = TRUE
+                       )
         ),
 
         # Show a plot of the generated distribution
         mainPanel(
-           plotOutput("distPlot")
+           plotOutput("barPlot")
         )
     )
 )
 
-# Define server logic required to draw a histogram
-server <- function(input, output) {
 
-    output$distPlot <- renderPlot({
-        # generate bins based on input$bins from ui.R
-        x    <- faithful[, 2]
-        bins <- seq(min(x), max(x), length.out = input$bins + 1)
+server <- function(input, output, session) {
 
-        # draw the histogram with the specified number of bins
-        hist(x, breaks = bins, col = 'darkgray', border = 'white',
-             xlab = 'Waiting time to next eruption (in mins)',
-             main = 'Histogram of waiting times')
-    })
-}
+  
+    output$barPlot <- renderPlot({
+      filter(cocktails, ingredient %in% input$ingredient) %>%
+        ggplot2::ggplot(aes(x= drink, fill= alcoholic))+ 
+      geom_bar(position= "stack")
+        })
+        
+
+    }
 
 # Run the application 
 shinyApp(ui = ui, server = server)
+
